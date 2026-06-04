@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="so">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Barcode — Martiqaad Aroos</title>
+  <script src="qr-lib.js"></script>
+  <style>
+    :root { --gold: #c9a962; --cream: #faf7f2; --dark: #2c2416; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: radial-gradient(ellipse at top, #3d3229 0%, var(--dark) 55%);
+      min-height: 100vh;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: var(--cream);
+      color: var(--dark);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      width: 100%;
+      max-width: 760px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      border: 1px solid rgba(201, 169, 98, 0.35);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 1.25rem;
+      text-align: left;
+    }
+    .bc-side {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      padding: 0.75rem 0.5rem;
+      border-radius: 8px;
+      border: 2px solid var(--gold);
+      min-width: 200px;
+    }
+    .bc-wrap {
+      width: 100%;
+      max-width: 340px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+    }
+    #bcCanvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+    }
+    .scan-label {
+      margin-top: 0.45rem;
+      font-size: 0.58rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .info-side { flex: 1; min-width: 0; }
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 1.6rem;
+      font-style: italic;
+      margin-bottom: 0.15rem;
+    }
+    .sub {
+      font-size: 0.68rem;
+      color: #666;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 0.65rem;
+    }
+    .page-select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--gold);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .url-box {
+      font-size: 0.6rem;
+      word-break: break-all;
+      color: #888;
+      background: #f5f0e8;
+      padding: 0.4rem 0.55rem;
+      border-radius: 4px;
+      margin-bottom: 0.45rem;
+      line-height: 1.35;
+    }
+    .stamp { font-size: 0.56rem; color: var(--gold); margin-bottom: 0.5rem; }
+    .btns { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    button, a.btn {
+      padding: 0.5rem 0.7rem;
+      font-size: 0.58rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--gold); color: #fff; }
+    .btn-secondary { background: transparent; color: var(--dark); border: 1px solid var(--gold); }
+    .hint { margin-top: 0.5rem; font-size: 0.56rem; color: #999; }
+    .nav-links { margin-top: 0.35rem; font-size: 0.56rem; }
+    .nav-links a { color: var(--gold); text-decoration: none; margin-right: 0.35rem; }
+
+    @media (max-width: 600px) {
+      .card { flex-direction: column; text-align: center; max-width: 360px; }
+      .btns { justify-content: center; }
+    }
+
+    @media print {
+      @page { size: landscape; margin: 10mm; }
+      body { background: #fff; }
+      .btns, .page-select, .hint, .nav-links { display: none !important; }
+      .card { box-shadow: none; border: 1px solid #ccc; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="printCard">
+    <div class="bc-side">
+      <div class="bc-wrap">
+        <canvas id="bcCanvas"></canvas>
+      </div>
+      <p class="scan-label">Scan barcode</p>
+    </div>
+
+    <div class="info-side">
+      <h1>Martiqaad Aroos</h1>
+      <p class="sub">Jiif — barcode fur martiqaadka</p>
+
+      <select class="page-select" id="pageSelect">
+        <option value="index.html">Bogga 1 — Classic</option>
+        <option value="naqsho2.html">Bogga 2 — Jardiino</option>
+        <option value="naqsho3.html">Bogga 3 — Habeen Casri</option>
+      </select>
+
+      <p class="url-box" id="urlText"></p>
+      <p class="stamp" id="stamp"></p>
+
+      <div class="btns">
+        <button type="button" class="btn-primary" id="btnNew">Barcode Cusub</button>
+        <button type="button" class="btn-secondary" id="btnCopy">Nuqul</button>
+        <button type="button" class="btn-secondary" id="btnSave">Kaydi PNG</button>
+        <button type="button" class="btn-secondary" id="btnPrint">Daabac</button>
+        <a class="btn btn-secondary" id="btnOpen" href="index.html" target="_blank">Fur</a>
+      </div>
+
+      <p class="hint">Barcode cusub markaad furto ama gujiso &quot;Barcode Cusub&quot;</p>
+      <p class="nav-links">
+        <a href="start.html">Bogagga</a>
+        <a href="index.html">Classic</a>
+        <a href="naqsho2.html">Jardiino</a>
+        <a href="naqsho3.html">Habeen</a>
+      </p>
+    </div>
+  </div>
+
+  <canvas id="exportCanvas" hidden></canvas>
+
+  <script>
+    (function() {
+      var canvas = document.getElementById('bcCanvas');
+      var exportCanvas = document.getElementById('exportCanvas');
+      var urlText = document.getElementById('urlText');
+      var stamp = document.getElementById('stamp');
+      var pageSelect = document.getElementById('pageSelect');
+      var btnOpen = document.getElementById('btnOpen');
+      var lastUrl = '';
+
+      var pre = new URLSearchParams(location.search).get('page');
+      if (pre && pageSelect.querySelector('option[value="' + pre + '"]')) pageSelect.value = pre;
+
+      function render() {
+        var page = pageSelect.value;
+        var url = WeddingBarcode.uniqueUrl(page);
+        lastUrl = url;
+        btnOpen.href = page;
+        urlText.textContent = url;
+        try {
+          WeddingBarcode.draw(canvas, url, {
+            height: 64,
+            maxWidth: 340,
+            moduleWidth: 2,
+            dark: '#2c2416',
+            light: '#ffffff',
+            showText: false
+          });
+          stamp.textContent = 'La sameeyay: ' + new Date().toLocaleString();
+        } catch (e) {
+          urlText.textContent = 'Khalad: ' + (e.message || e);
+        }
+      }
+
+      function savePng() {
+        var W = 820, H = 220, pad = 28;
+        exportCanvas.width = W;
+        exportCanvas.height = H;
+        var ctx = exportCanvas.getContext('2d');
+        ctx.fillStyle = '#faf7f2';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = '#c9a962';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, W - 2, H - 2);
+
+        var tmp = document.createElement('canvas');
+        WeddingBarcode.draw(tmp, lastUrl, { height: 80, maxWidth: 520, moduleWidth: 2, showText: true });
+        var bx = (W - tmp.width) / 2;
+        ctx.drawImage(tmp, bx, 50, tmp.width, tmp.height);
+
+        ctx.fillStyle = '#2c2416';
+        ctx.font = 'italic 28px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Martiqaad Aroos', W / 2, 36);
+        ctx.font = '9px system-ui,sans-serif';
+        ctx.fillStyle = '#c9a962';
+        ctx.fillText(stamp.textContent, W / 2, H - 14);
+
+        var a = document.createElement('a');
+        a.download = 'martiqaad-barcode-' + Date.now() + '.png';
+        a.href = exportCanvas.toDataURL('image/png');
+        a.click();
+      }
+
+      document.getElementById('btnNew').onclick = render;
+      document.getElementById('btnPrint').onclick = function() { window.print(); };
+      document.getElementById('btnSave').onclick = savePng;
+      pageSelect.onchange = render;
+      document.getElementById('btnCopy').onclick = function() {
+        if (!lastUrl) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(lastUrl).then(function() { stamp.textContent = 'Link la nuqulay!'; });
+        } else prompt('Nuqul:', lastUrl);
+      };
+      window.addEventListener('pageshow', function(e) { if (e.persisted) render(); });
+      render();
+    })();
+  </script>
+</body>
+</html>
